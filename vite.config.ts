@@ -12,9 +12,9 @@ export default defineConfig({
   },
   define: {
     'window.ENV': {
-      GITHUB_OWNER: JSON.stringify(process.env.VITE_GITHUB_OWNER),
-      GITHUB_REPO: JSON.stringify(process.env.VITE_GITHUB_REPO),
-      GITHUB_TOKEN: JSON.stringify(process.env.VITE_GITHUB_TOKEN)
+      GITHUB_OWNER: process.env.VITE_GITHUB_OWNER,
+      GITHUB_REPO: process.env.VITE_GITHUB_REPO,
+      GITHUB_TOKEN: process.env.VITE_GITHUB_TOKEN
     }
   }
 })

@@ -13,7 +13,7 @@ export class GitHubStorage {
     this.owner = '';
     this.repo = '';
     this.token = '';
-    this.branch = 'main';
+    this.branch = 'gh-pages';
   }
 
   private async initialize() {
