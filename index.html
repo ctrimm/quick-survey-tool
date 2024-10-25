@@ -8,14 +8,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Add environment variables before the app script -->
-    <script>
-      window.ENV = {
-        GITHUB_OWNER: '%VITE_GITHUB_OWNER%',
-        GITHUB_REPO: '%VITE_GITHUB_REPO%',
-        GITHUB_TOKEN: '%VITE_GITHUB_TOKEN%'
-      };
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
