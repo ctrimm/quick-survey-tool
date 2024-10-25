@@ -1,8 +1,14 @@
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { CONFIG } from '@/constants/config'
 import { Link } from 'react-router-dom'
 
 export function HomePage() {
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log('Environment variables:', (window as any).ENV);
+  }, []);
+
   return (
     <div className="space-y-4 text-center">
       <img src={CONFIG.logoUrl} alt="Logo" className="h-12 mx-auto mb-8" />
