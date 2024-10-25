@@ -47,7 +47,7 @@ export class GitHubStorage {
     try {
       const response = await fetch(url, {
         headers: {
-          'Authorization': `token ${this.token}`,
+          'Authorization': `Bearer ${this.token}`,
           'Accept': 'application/vnd.github.v3+json'
         }
       });
@@ -89,7 +89,7 @@ export class GitHubStorage {
       try {
         const response = await fetch(url, {
           headers: { 
-            'Authorization': `token ${this.token}`,
+            'Authorization': `Bearer ${this.token}`,
             'Accept': 'application/vnd.github.v3+json'
           }
         });
@@ -106,7 +106,7 @@ export class GitHubStorage {
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
-          'Authorization': `token ${this.token}`,
+          'Authorization': `Bearer ${this.token}`,
           'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
@@ -310,7 +310,7 @@ export class GitHubStorage {
 
       const response = await fetch(url, {
         headers: { 
-          'Authorization': `token ${this.token}`,
+          'Authorization': `Bearer ${this.token}`,
           'Accept': 'application/vnd.github.v3+json'
         }
       });
