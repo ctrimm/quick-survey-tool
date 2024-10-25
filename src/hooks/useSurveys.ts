@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 import { GitHubStorage } from '@/lib/github';
 import type { Survey, SurveyResponse } from '@/types/survey';
 
-const storage = new GitHubStorage(
-  import.meta.env.VITE_GITHUB_OWNER || '',
-  import.meta.env.VITE_GITHUB_REPO || '',
-);
+const storage = new GitHubStorage();
 
 export function useSurveys() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSurveys();
@@ -25,6 +23,7 @@ export function useSurveys() {
       setSurveys(loadedSurveys.filter((s): s is Survey => s !== null));
     } catch (error) {
       console.error('Failed to load surveys:', error);
+      setError('Failed to load surveys');
     } finally {
       setLoading(false);
     }

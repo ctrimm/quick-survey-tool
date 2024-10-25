@@ -1,58 +1,32 @@
+// src/lib/github.ts
+import { loadConfig } from '@/config/config';
 import { Survey, SurveyResponse } from '@/types/survey';
-import { CSVStorage } from './storage';
 
 export class GitHubStorage {
-  private owner: string;
-  private repo: string;
-  private branch: string;
-  private token: string;
+  private owner: string = '';
+  private repo: string = '';
+  private branch: string = 'main';
+  private token: string = '';
+  private initialized: boolean = false;
 
-  constructor(owner: string, repo: string, branch = 'main') {
-    this.owner = owner;
-    this.repo = repo;
-    this.branch = branch;
-    // Use import.meta.env for Vite environment variables
-    this.token = import.meta.env.VITE_GITHUB_TOKEN || '';
+  private async initialize() {
+    if (!this.initialized) {
+      const config = await loadConfig();
+      this.owner = config.githubOwner;
+      this.repo = config.githubRepo;
+      this.token = config.githubToken;
+      this.initialized = true;
+    }
   }
 
-  private async commitFile(path: string, content: string, message: string) {
-    const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`;
-    
-    // First try to get existing file
-    let sha: string | undefined;
-    try {
-      const response = await fetch(url, {
-        headers: { 'Authorization': `token ${this.token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        sha = data.sha;
-      }
-    } catch (error) {
-      console.log('File does not exist yet', error);
-    }
-
-    // Create or update file
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `token ${this.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message,
-        content: btoa(content),
-        sha,
-        branch: this.branch
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to commit file: ${response.statusText}`);
+  private async ensureInitialized() {
+    if (!this.initialized) {
+      await this.initialize();
     }
   }
 
   private async readFile(path: string): Promise<string> {
+    await this.ensureInitialized();
     const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`;
     try {
       const response = await fetch(url, {
@@ -75,32 +49,156 @@ export class GitHubStorage {
     }
   }
 
-  async saveSurvey(survey: Survey): Promise<void> {
-    // Save survey metadata
-    const surveyCSV = CSVStorage.surveyToCSV(survey);
-    await this.commitFile(
-      `surveys/${survey.id}/survey.csv`,
-      surveyCSV,
-      `Update survey ${survey.id} metadata`
-    );
+  private async createDirectory(path: string) {
+    await this.ensureInitialized();
+    try {
+      // Try to create an empty .gitkeep file in the directory
+      await this.commitFile(
+        `${path}/.gitkeep`,
+        '',
+        `Create ${path} directory`
+      );
+    } catch {
+      console.log(`Directory ${path} might already exist or creation failed`);
+    }
+  }
 
-    // Save responses
-    const responsesCSV = CSVStorage.responsesToCSV(survey);
-    await this.commitFile(
-      `surveys/${survey.id}/responses.csv`,
-      responsesCSV,
-      `Update survey ${survey.id} responses`
-    );
+  private async commitFile(path: string, content: string, message: string) {
+    await this.ensureInitialized();
+    const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`;
+    
+    try {
+      // First try to get existing file
+      let sha: string | undefined;
+      try {
+        const response = await fetch(url, {
+          headers: { 
+            'Authorization': `token ${this.token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          sha = data.sha;
+        }
+      } catch {
+        // File doesn't exist yet, which is fine
+        console.log(`Directory or file does not yet exist`);
+      }
+
+      // Create or update file
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${this.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          content: btoa(content),
+          sha,
+          branch: this.branch
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to commit file: ${response.statusText} - ${JSON.stringify(errorData)}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error committing file:', error);
+      throw error;
+    }
+  }
+
+  private static surveyToCSV(survey: Survey): string {
+    const headers = ['id', 'title', 'description', 'questions'];
+    const questionData = JSON.stringify(survey.questions); // Store questions as JSON since they're structured
+    const row = [survey.id, survey.title, survey.description, questionData];
+    
+    return [
+      headers.join(','),
+      this.escapeCSVRow(row)
+    ].join('\n');
+  }
+
+  private static responsesToCSV(survey: Survey): string {
+    // Create headers from question texts
+    const headers = ['response_id', ...survey.questions.map(q => q.text)];
+    
+    // Convert each response to a row
+    const rows = survey.responses.map(response => {
+      return [
+        response.id,
+        ...survey.questions.map(question => {
+          const value = response[question.id];
+          if (Array.isArray(value)) {
+            // For checkbox questions, join multiple values
+            return value.join(';');
+          }
+          return value || '';
+        })
+      ];
+    });
+
+    return [
+      headers.join(','),
+      ...rows.map(row => this.escapeCSVRow(row))
+    ].join('\n');
+  }
+
+  private static escapeCSVRow(row: (string | number)[]): string {
+    return row.map(value => {
+      const stringValue = String(value);
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    }).join(',');
+  }
+
+  async saveSurvey(survey: Survey): Promise<void> {
+    await this.ensureInitialized();
+    try {
+      // Create surveys directory if it doesn't exist
+      await this.createDirectory('surveys');
+      
+      // Create survey-specific directory
+      await this.createDirectory(`surveys/${survey.id}`);
+
+      // Save survey metadata
+      const surveyCSV = GitHubStorage.surveyToCSV(survey);
+      await this.commitFile(
+        `surveys/${survey.id}/survey.csv`,
+        surveyCSV,
+        `Update survey ${survey.id} metadata`
+      );
+
+      // Save responses
+      const responsesCSV = GitHubStorage.responsesToCSV(survey);
+      await this.commitFile(
+        `surveys/${survey.id}/responses.csv`,
+        responsesCSV,
+        `Update survey ${survey.id} responses`
+      );
+    } catch (error) {
+      console.error('Error saving survey:', error);
+      throw error;
+    }
   }
 
   async loadSurvey(id: string): Promise<Survey | null> {
+    await this.ensureInitialized();
     try {
       // Read survey metadata
       const surveyContent = await this.readFile(`surveys/${id}/survey.csv`);
       if (!surveyContent) return null;
 
       // Parse CSV (skipping header row)
-      const [dataRow] = surveyContent.trim().split('\n');
+      const [, dataRow] = surveyContent.trim().split('\n');
       if (!dataRow) return null;
 
       // Parse the CSV row, handling quoted values properly
@@ -160,6 +258,7 @@ export class GitHubStorage {
             id: responseId,
           };
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           questions.forEach((question: any, index: number) => {
             const answer = answers[index];
             if (question.type === 'checkbox' && answer) {
@@ -187,10 +286,17 @@ export class GitHubStorage {
   }
 
   async listSurveys(): Promise<string[]> {
+    await this.ensureInitialized();
     const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/surveys`;
     try {
+      // Try to create surveys directory if it doesn't exist
+      await this.createDirectory('surveys');
+
       const response = await fetch(url, {
-        headers: { 'Authorization': `token ${this.token}` }
+        headers: { 
+          'Authorization': `token ${this.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
       });
       
       if (!response.ok) {
@@ -199,7 +305,16 @@ export class GitHubStorage {
       }
 
       const data = await response.json();
-      return data.map((item: any) => item.name);
+
+      // Filter out .gitkeep and only return directory names
+      interface GithubDirectoryItem {
+        type: string;
+        name: string;
+      }
+      
+      return data
+        .filter((item: GithubDirectoryItem) => item.type === 'dir')
+        .map((item: GithubDirectoryItem) => item.name);
     } catch (error) {
       console.error('Error listing surveys:', error);
       return [];
