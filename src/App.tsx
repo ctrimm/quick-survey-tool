@@ -1,9 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { HomePage } from '@/pages/Home'
-import { AdminPage } from '@/pages/Admin'
-import { AdminDashboard } from '@/pages/AdminDashboard'
-import { SurveyPage } from '@/pages/Survey'
-import { ResultsPage } from '@/pages/Results'
+// src/App.tsx
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HomePage } from '@/pages/Home';
+import { AdminPage } from '@/pages/Admin';
+import { AdminDashboard } from '@/pages/AdminDashboard';
+import { SurveyPage } from '@/pages/Survey';
+import { ResultsPage } from '@/pages/Results';
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
         </div>
       </div>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;
