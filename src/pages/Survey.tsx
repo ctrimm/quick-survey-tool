@@ -119,7 +119,7 @@ export function SurveyPage() {
         <p className="text-gray-600 mb-6">Your response has been recorded.</p>
         <div className="space-x-4">
           <Button onClick={() => navigate('/')}>Return Home</Button>
-          <Button variant="outline" onClick={() => {
+          <Button onClick={() => {
             setSubmissionState('idle');
             setResponse({});
             setSurveyState('lookup');
@@ -140,7 +140,7 @@ export function SurveyPage() {
         <p className="text-red-600 mb-6">{error || 'Please try again later.'}</p>
         <div className="space-x-4">
           <Button onClick={() => setSubmissionState('idle')}>Try Again</Button>
-          <Button variant="outline" onClick={() => navigate('/')}>
+          <Button onClick={() => navigate('/')}>
             Return Home
           </Button>
         </div>
@@ -165,7 +165,7 @@ export function SurveyPage() {
           </div>
           <div className="flex space-x-2">
             <Button type="submit">Find Survey</Button>
-            <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            <Button type="button" onClick={() => navigate('/')}>
               Cancel
             </Button>
           </div>
@@ -189,7 +189,7 @@ export function SurveyPage() {
             setSurveyState('lookup');
             navigate('/survey');
           }}>Try Another Survey ID</Button>
-          <Button variant="outline" onClick={() => navigate('/')}>
+          <Button onClick={() => navigate('/')}>
             Go Home
           </Button>
         </div>
@@ -230,7 +230,7 @@ export function SurveyPage() {
         </div>
 
         <div className="flex justify-end space-x-3">
-          <Button variant="outline" onClick={() => {
+          <Button onClick={() => {
             setSurveyState('lookup');
             navigate('/survey');
           }}>

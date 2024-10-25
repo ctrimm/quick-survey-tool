@@ -1,6 +1,11 @@
 {
   "name": "quick-survey-tool",
   "private": true,
+  "author": {
+    "name": "Cory Trimm",
+    "email": "cory.trimm@gmail.com",
+    "url": "https://corytrimm.com"
+  },
   "version": "0.0.0",
   "type": "module",
   "scripts": {

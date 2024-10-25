@@ -1,5 +1,5 @@
 // src/lib/storage.ts
-import { Survey, SurveyResponse } from '@/types/survey';
+import { Survey } from '@/types/survey';
 
 export class CSVStorage {
   // Convert survey metadata to CSV

@@ -29,7 +29,7 @@ export class GitHubStorage {
         sha = data.sha;
       }
     } catch (error) {
-      console.log('File does not exist yet');
+      console.log('File does not exist yet', error);
     }
 
     // Create or update file
@@ -100,7 +100,7 @@ export class GitHubStorage {
       if (!surveyContent) return null;
 
       // Parse CSV (skipping header row)
-      const [header, dataRow] = surveyContent.trim().split('\n');
+      const [dataRow] = surveyContent.trim().split('\n');
       if (!dataRow) return null;
 
       // Parse the CSV row, handling quoted values properly

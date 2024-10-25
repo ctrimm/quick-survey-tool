@@ -46,7 +46,7 @@ export function AdminDashboard() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <Link to="/">
-          <Button variant="outline">Logout</Button>
+          <Button>Logout</Button>
         </Link>
       </div>
 
@@ -105,7 +105,6 @@ export function AdminDashboard() {
                           {question.options!.length > 1 && (
                             <Button
                               type="button"
-                              variant="outline"
                               onClick={() => {
                                 const questions = [...newSurvey.questions]
                                 questions[idx].options = questions[idx].options!.filter(
@@ -121,7 +120,6 @@ export function AdminDashboard() {
                       ))}
                       <Button
                         type="button"
-                        variant="outline"
                         onClick={() => {
                           const questions = [...newSurvey.questions]
                           questions[idx].options!.push('')
@@ -135,7 +133,6 @@ export function AdminDashboard() {
 
                   <Button
                     type="button"
-                    variant="outline"
                     onClick={() => {
                       setNewSurvey({
                         ...newSurvey,
@@ -184,7 +181,7 @@ export function AdminDashboard() {
               </div>
               <div className="space-x-2">
                 <Link to={`/results/${survey.id}`}>
-                  <Button variant="outline">View Results</Button>
+                  <Button>View Results</Button>
                 </Link>
                 <Link to={`/survey/${survey.id}`}>
                   <Button>Take Survey</Button>

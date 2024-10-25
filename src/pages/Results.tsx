@@ -50,7 +50,7 @@ export function ResultsPage() {
           <h1 className="text-2xl font-bold">{survey.title} - Results</h1>
           <p className="text-gray-600">Total Responses: {survey.responses.length}</p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/admin/dashboard')}>
+        <Button onClick={() => navigate('/admin/dashboard')}>
           Back to Dashboard
         </Button>
       </div>
