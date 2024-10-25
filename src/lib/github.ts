@@ -1,15 +1,16 @@
+import { Octokit } from "@octokit/core";
 import { Survey, SurveyResponse } from '@/types/survey';
 
 export class GitHubStorage {
+  private octokit: Octokit;
   private owner: string;
   private repo: string;
   private branch: string;
   private token: string;
-  // Add initialized flag
   private initialized: boolean = false;
 
   constructor() {
-    // Initialize with empty strings to avoid undefined
+    this.octokit = new Octokit();
     this.owner = '';
     this.repo = '';
     this.token = '';
@@ -17,21 +18,21 @@ export class GitHubStorage {
   }
 
   private async initialize() {
-    // Access the injected environment variables
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const env = (window as any).ENV;
     if (!env) {
       throw new Error('Environment variables not found');
     }
-    
+
     this.owner = env.GITHUB_OWNER;
     this.repo = env.GITHUB_REPO;
     this.token = env.GITHUB_TOKEN;
-    
+    this.octokit = new Octokit({ auth: this.token });
+
     if (!this.owner || !this.repo || !this.token) {
       throw new Error('Missing required GitHub configuration');
     }
-    
+
     this.initialized = true;
   }
 
@@ -43,22 +44,29 @@ export class GitHubStorage {
 
   private async readFile(path: string): Promise<string> {
     await this.ensureInitialized();
-    const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`;
     try {
-      const response = await fetch(url, {
+      const response = await this.octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+        owner: this.owner,
+        repo: this.repo,
+        path,
         headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Accept': 'application/vnd.github.v3+json'
+          'X-GitHub-Api-Version': '2022-11-28'
         }
       });
 
-      if (!response.ok) {
-        if (response.status === 404) return '';
-        throw new Error(`Failed to read file: ${response.statusText}`);
+      if (Array.isArray(response.data)) {
+        // Handle case when the response is an array (e.g., for directories)
+        return '';
+      } else if (response.data.type === 'file') {
+        // Handle case when the response is a file object
+        if (!response.data.content) {
+          throw new Error('File content is empty');
+        }
+        return Buffer.from(response.data.content, 'base64').toString('utf-8');
+      } else {
+        // Handle other cases (e.g., symlink)
+        return '';
       }
-
-      const data = await response.json();
-      return atob(data.content);
     } catch (error) {
       console.error(`Error reading file ${path}:`, error);
       throw error;
@@ -68,12 +76,7 @@ export class GitHubStorage {
   private async createDirectory(path: string) {
     await this.ensureInitialized();
     try {
-      // Try to create an empty .gitkeep file in the directory
-      await this.commitFile(
-        `${path}/.gitkeep`,
-        '',
-        `Create ${path} directory`
-      );
+      await this.commitFile(`${path}/.gitkeep`, '', `Create ${path} directory`);
     } catch {
       console.log(`Directory ${path} might already exist or creation failed`);
     }
@@ -81,51 +84,52 @@ export class GitHubStorage {
 
   private async commitFile(path: string, content: string, message: string) {
     await this.ensureInitialized();
-    const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`;
-    
-    try {
-      // First try to get existing file
-      let sha: string | undefined;
-      try {
-        const response = await fetch(url, {
-          headers: { 
-            'Authorization': `Bearer ${this.token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          sha = data.sha;
-        }
-      } catch {
-        // File doesn't exist yet, which is fine
-        console.log(`Directory or file does not yet exist`);
-      }
 
-      // Create or update file
-      const response = await fetch(url, {
-        method: 'PUT',
+    try {
+      const response = await this.octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+        owner: this.owner,
+        repo: this.repo,
+        path,
         headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          content: btoa(content),
-          sha,
-          branch: this.branch
-        })
+          'X-GitHub-Api-Version': '2022-11-28'
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to commit file: ${response.statusText} - ${JSON.stringify(errorData)}`);
+      let sha;
+      if (Array.isArray(response.data)) {
+        // Handle case when the response is an array (e.g., for directories)
+        sha = null;
+      } else {
+        // Handle case when the response is a file object
+        sha = response.data.sha || null;
       }
 
-      return await response.json();
+      await this.octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
+        owner: this.owner,
+        repo: this.repo,
+        path,
+        message,
+        content: Buffer.from(content).toString('base64'),
+        sha: sha ?? undefined,
+        branch: this.branch
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }).catch((error: any) => {
+        if (error.response?.status !== 404) {
+          console.error(`Error committing file ${path}:`, error);
+          throw error;
+        }
+      });
+
+      await this.octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
+        owner: this.owner,
+        repo: this.repo,
+        path,
+        message,
+        content: Buffer.from(content).toString('base64'),
+        branch: this.branch
+      });
     } catch (error) {
-      console.error('Error committing file:', error);
+      console.error(`Error committing file ${path}:`, error);
       throw error;
     }
   }
@@ -310,7 +314,7 @@ export class GitHubStorage {
 
       const response = await fetch(url, {
         headers: { 
-          'Authorization': `Bearer ${this.token}`,
+          'Authorization': `token ${this.token}`,
           'Accept': 'application/vnd.github.v3+json'
         }
       });
