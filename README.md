@@ -15,112 +15,127 @@ A simple, self-contained survey creation and management tool that stores respons
 - 📈 Basic results visualization
 - 🎨 Customizable styling and branding
 
-## Getting Started
+## Running Locally
 
 ### Prerequisites
 
 - Node.js (v16 or newer)
 - A GitHub account
 - A GitHub Personal Access Token with `repo` scope
+  - Go to GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)
+  - Generate new token, select `repo` scope
+  - Copy the token for later use
 
-### Installation
+### Setup Local Development
 
-1. Fork this repository
-2. Clone your forked repository:
+1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/survey-creator.git
+git clone https://github.com/yourusername/survey-creator.git
 cd survey-creator
 ```
 
-3. Install dependencies:
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-4. Create a `.env.local` file in the root directory:
+3. Create a `.env.local` file in the root directory:
 ```env
 VITE_GITHUB_OWNER=your-github-username
 VITE_GITHUB_REPO=survey-creator
 VITE_GITHUB_TOKEN=your-github-personal-access-token
 ```
 
-5. Update the configuration in `src/constants/config.ts`:
-```typescript
-export const CONFIG = {
-  adminPassword: "your-chosen-password", // Password for creating surveys
-  logoUrl: "/your-logo.png",            // Your logo path
-  primaryColor: "#your-color-code"      // Your brand color
-} as const;
-```
-
-6. Start the development server:
+4. Start the development server:
 ```bash
 npm run dev
 ```
 
-### Deployment to GitHub Pages
+5. Open http://localhost:5173 in your browser
 
-1. In your repository settings, enable GitHub Pages and set it to deploy from the `gh-pages` branch
+### Local Development Notes
+- Changes are saved to your GitHub repository in real-time
+- The admin password can be configured in `src/constants/config.ts`
+- Survey responses are stored as CSV files in the `surveys/` directory of your repository
+- Each survey has its own directory with metadata and responses
 
-2. Add your environment variables to GitHub Pages:
-   - Go to your repository settings
-   - Navigate to "Environments" → "github-pages"
-   - Add your environment variables (VITE_GITHUB_OWNER, VITE_GITHUB_REPO, VITE_GITHUB_TOKEN)
+## Deploying to GitHub Pages
 
-3. Deploy your application:
+### First-Time Setup
+
+1. Create a new repository on GitHub
+
+2. Update your repository settings:
+- Go to repository Settings
+- Go to Pages section
+- Set source to "Deploy from a branch"
+- Select "gh-pages" branch and "/(root)" folder
+- Click Save
+
+3. Add repository secrets:
+- Go to repository Settings
+- Click "Secrets and variables" → "Actions"
+- Add the following secrets:
+  ```
+  VITE_GITHUB_OWNER=your-github-username
+  VITE_GITHUB_REPO=your-repo-name
+  VITE_GITHUB_TOKEN=your-github-token
+  ```
+
+4. Update the base URL in `vite.config.ts`:
+```typescript
+export default defineConfig({
+  plugins: [react()],
+  base: '/your-repo-name/', // Replace with your repository name
+  // ... rest of config
+})
+```
+
+### Deployment
+
+1. Push your changes to GitHub:
+```bash
+git add .
+git commit -m "Your commit message"
+git push origin main
+```
+
+2. The GitHub Action will automatically deploy your changes
+
+3. Your site will be available at:
+```
+https://yourusername.github.io/your-repo-name/
+```
+
+### Manual Deployment
+
+If you prefer to deploy manually:
+
+1. Build the project:
+```bash
+npm run build
+```
+
+2. Deploy to GitHub Pages:
 ```bash
 npm run deploy
 ```
 
-## Usage
+## Configuration
 
-### Creating a Survey
-
-1. Navigate to your deployed application
-2. Click "Admin Login" and enter your admin password
-3. Click "Create New Survey"
-4. Fill in the survey details:
-   - Title
-   - Description
-   - Add questions using the question type buttons
-5. Click "Create Survey" to save
-
-### Sharing a Survey
-
-1. After creating a survey, copy the survey ID from the admin dashboard
-2. Share the URL: `https://your-username.github.io/survey-creator/survey/[SURVEY_ID]`
-
-### Viewing Results
-
-1. Log in to the admin dashboard
-2. Find your survey in the list
-3. Click "View Results"
-
-### Accessing the Data
-
-Survey data is stored in your repository under the `surveys` directory:
+### Customizing the Admin Password
+The default admin password can be changed in `src/constants/config.ts`:
+```typescript
+export const CONFIG = {
+  adminPassword: "your-chosen-password",
+  // ... other config options
+};
 ```
-surveys/
-  ├── [survey-id]/
-  │   ├── survey.csv     # Survey metadata and questions
-  │   └── responses.csv  # Individual responses
-```
-
-## Customization
 
 ### Styling
-
-1. Update theme colors in `tailwind.config.js`
-2. Modify component styles in `src/components/ui/`
-3. Add custom CSS in `src/styles/globals.css`
-
-### Components
-
-All UI components are built with [shadcn/ui](https://ui.shadcn.com/) and can be customized:
-- Buttons (`src/components/ui/button.tsx`)
-- Inputs (`src/components/ui/input.tsx`)
-- Cards (`src/components/ui/card.tsx`)
-- etc.
+- Modify theme colors in `tailwind.config.js`
+- Update component styles in `src/components/ui/`
+- Add custom CSS in `src/styles/globals.css`
 
 ## Project Structure
 
@@ -136,19 +151,39 @@ src/
 └── types/            # TypeScript type definitions
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/AmazingFeature`
-3. Commit your changes: `git commit -m 'Add some AmazingFeature'`
-4. Push to the branch: `git push origin feature/AmazingFeature`
-5. Open a Pull Request
-
-## Security Considerations
+## Security Notes
 
 - The admin password is stored in plain text in the config file. For production use, consider implementing proper authentication.
 - The GitHub token has repository access. Keep it secure and consider implementing token rotation.
 - There's no rate limiting on survey submissions. Consider adding protection against spam.
+- Survey data is public in your repository. Make sure not to collect sensitive information.
+
+## Troubleshooting
+
+### Common Issues
+
+1. Blank Page After Deployment
+- Check if the `base` in `vite.config.ts` matches your repository name
+- Verify all assets are using relative paths
+- Check browser console for errors
+
+2. API Errors
+- Verify your GitHub token has the correct permissions
+- Check if your environment variables are set correctly
+- Ensure repository name and owner are correct
+
+3. Failed Deployments
+- Make sure the gh-pages branch exists
+- Check if GitHub Pages is enabled in repository settings
+- Verify GitHub Action secrets are set correctly
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ## License
 
