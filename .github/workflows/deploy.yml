@@ -30,18 +30,10 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          GITHUB_PAGES: 'true'  # Set the environment variable
           VITE_GITHUB_OWNER: ${{ secrets.VITE_GITHUB_OWNER }}
           VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
-
-      # Remove config.json approach - instead inject variables into window object
-      - name: Inject Environment Variables
-        run: |
-          echo "window.ENV = {
-            GITHUB_OWNER: '${{ secrets.VITE_GITHUB_OWNER }}',
-            GITHUB_REPO: '${{ secrets.VITE_GITHUB_REPO }}',
-            GITHUB_TOKEN: '${{ secrets.VITE_GITHUB_TOKEN }}'
-          };" > dist/env.js
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
@@ -49,4 +41,3 @@ jobs:
           folder: dist
           branch: gh-pages
           clean: true
-          token: ${{ secrets.VITE_GITHUB_TOKEN }}
