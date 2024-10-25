@@ -54,19 +54,25 @@ export class GitHubStorage {
 
   private async readFile(path: string): Promise<string> {
     const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`;
-    const response = await fetch(url, {
-      headers: { 'Authorization': `token ${this.token}` }
-    });
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `token ${this.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return '';
+      if (!response.ok) {
+        if (response.status === 404) return '';
+        throw new Error(`Failed to read file: ${response.statusText}`);
       }
-      throw new Error(`Failed to read file: ${response.statusText}`);
-    }
 
-    const data = await response.json();
-    return atob(data.content);
+      const data = await response.json();
+      return atob(data.content);
+    } catch (error) {
+      console.error(`Error reading file ${path}:`, error);
+      throw error;
+    }
   }
 
   async saveSurvey(survey: Survey): Promise<void> {
@@ -94,38 +100,75 @@ export class GitHubStorage {
       if (!surveyContent) return null;
 
       // Parse CSV (skipping header row)
-      const [_, dataRow] = surveyContent.split('\n');
+      const [header, dataRow] = surveyContent.trim().split('\n');
       if (!dataRow) return null;
 
-      const [surveyId, title, description, questionsJson] = dataRow.split(',').map(
-        cell => cell.replace(/^"(.*)"$/, '$1').replace(/""/g, '"')
-      );
+      // Parse the CSV row, handling quoted values properly
+      const parseCSVRow = (row: string): string[] => {
+        const values: string[] = [];
+        let currentValue = '';
+        let insideQuotes = false;
+
+        for (let i = 0; i < row.length; i++) {
+          const char = row[i];
+          if (char === '"') {
+            if (insideQuotes && row[i + 1] === '"') {
+              // Handle escaped quotes
+              currentValue += '"';
+              i++;
+            } else {
+              // Toggle quote state
+              insideQuotes = !insideQuotes;
+            }
+          } else if (char === ',' && !insideQuotes) {
+            // End of value
+            values.push(currentValue);
+            currentValue = '';
+          } else {
+            currentValue += char;
+          }
+        }
+        values.push(currentValue); // Add the last value
+        return values;
+      };
+
+      const [surveyId, title, description, questionsJson] = parseCSVRow(dataRow);
+
+      // Parse the questions JSON that was stored in the CSV
+      let questions;
+      try {
+        questions = JSON.parse(questionsJson.replace(/^"(.*)"$/, '$1').replace(/""/g, '"'));
+      } catch (error) {
+        console.error('Error parsing questions JSON:', error);
+        questions = [];
+      }
 
       // Read responses
       const responsesContent = await this.readFile(`surveys/${id}/responses.csv`);
       const responses: SurveyResponse[] = [];
-      
+
       if (responsesContent) {
-        const rows = responsesContent.split('\n').slice(1); // Skip header
-        const questions = JSON.parse(questionsJson);
+        const rows = responsesContent.trim().split('\n').slice(1); // Skip header
         
         rows.forEach(row => {
           if (!row.trim()) return;
-          
-          const values = row.split(',').map(
-            cell => cell.replace(/^"(.*)"$/, '$1').replace(/""/g, '"')
-          );
-          
+
+          const values = parseCSVRow(row);
           const [responseId, ...answers] = values;
-          const response: SurveyResponse = { id: responseId };
-          
+
+          const response: SurveyResponse = { 
+            id: responseId,
+          };
+
           questions.forEach((question: any, index: number) => {
             const answer = answers[index];
-            response[question.id] = question.type === 'checkbox' 
-              ? answer.split(';')
-              : answer;
+            if (question.type === 'checkbox' && answer) {
+              response[question.id] = answer.split(';').filter(Boolean);
+            } else {
+              response[question.id] = answer || '';
+            }
           });
-          
+
           responses.push(response);
         });
       }
@@ -134,7 +177,7 @@ export class GitHubStorage {
         id: surveyId,
         title,
         description,
-        questions: JSON.parse(questionsJson),
+        questions,
         responses
       };
     } catch (error) {
