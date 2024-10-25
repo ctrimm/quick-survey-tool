@@ -18,21 +18,13 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '22'
+          node-version: '18'
           cache: 'npm'
 
       - name: Install Dependencies
         run: npm install
-
-      - name: Create env file
-        run: |
-          echo "window.ENV = {" > ./public/env.js
-          echo "  GITHUB_OWNER: '${{ secrets.VITE_GITHUB_OWNER }}'," >> ./public/env.js
-          echo "  GITHUB_REPO: '${{ secrets.VITE_GITHUB_REPO }}'," >> ./public/env.js
-          echo "  GITHUB_TOKEN: '${{ secrets.VITE_GITHUB_TOKEN }}'" >> ./public/env.js
-          echo "};" >> ./public/env.js
 
       - name: Build
         run: npm run build
