@@ -1,22 +1,38 @@
-// src/lib/github.ts
-import { loadConfig } from '@/config/config';
 import { Survey, SurveyResponse } from '@/types/survey';
 
 export class GitHubStorage {
-  private owner: string = '';
-  private repo: string = '';
-  private branch: string = 'main';
-  private token: string = '';
+  private owner: string;
+  private repo: string;
+  private branch: string;
+  private token: string;
+  // Add initialized flag
   private initialized: boolean = false;
 
+  constructor() {
+    // Initialize with empty strings to avoid undefined
+    this.owner = '';
+    this.repo = '';
+    this.token = '';
+    this.branch = 'main';
+  }
+
   private async initialize() {
-    if (!this.initialized) {
-      const config = await loadConfig();
-      this.owner = config.githubOwner;
-      this.repo = config.githubRepo;
-      this.token = config.githubToken;
-      this.initialized = true;
+    // Access the injected environment variables
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const env = (window as any).ENV;
+    if (!env) {
+      throw new Error('Environment variables not found');
     }
+    
+    this.owner = env.GITHUB_OWNER;
+    this.repo = env.GITHUB_REPO;
+    this.token = env.GITHUB_TOKEN;
+    
+    if (!this.owner || !this.repo || !this.token) {
+      throw new Error('Missing required GitHub configuration');
+    }
+    
+    this.initialized = true;
   }
 
   private async ensureInitialized() {

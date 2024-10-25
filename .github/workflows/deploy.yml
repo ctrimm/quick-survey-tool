@@ -6,7 +6,6 @@ on:
     branches:
       - main
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: write
   pages: write
@@ -35,13 +34,14 @@ jobs:
           VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
 
-      - name: Create config.json
+      # Remove config.json approach - instead inject variables into window object
+      - name: Inject Environment Variables
         run: |
-          echo '{
-            "githubOwner": "${{ secrets.VITE_GITHUB_OWNER }}",
-            "githubRepo": "${{ secrets.VITE_GITHUB_REPO }}",
-            "githubToken": "${{ secrets.VITE_GITHUB_TOKEN }}"
-          }' > dist/config.json
+          echo "window.ENV = {
+            GITHUB_OWNER: '${{ secrets.VITE_GITHUB_OWNER }}',
+            GITHUB_REPO: '${{ secrets.VITE_GITHUB_REPO }}',
+            GITHUB_TOKEN: '${{ secrets.VITE_GITHUB_TOKEN }}'
+          };" > dist/env.js
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
@@ -49,3 +49,4 @@ jobs:
           folder: dist
           branch: gh-pages
           clean: true
+          token: ${{ secrets.VITE_GITHUB_TOKEN }}
