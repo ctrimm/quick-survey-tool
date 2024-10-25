@@ -11,8 +11,8 @@ export class GitHubStorage {
     this.owner = owner;
     this.repo = repo;
     this.branch = branch;
-    // Get token from environment variable
-    this.token = process.env.VITE_GITHUB_TOKEN || '';
+    // Use import.meta.env for Vite environment variables
+    this.token = import.meta.env.VITE_GITHUB_TOKEN || '';
   }
 
   private async commitFile(path: string, content: string, message: string) {

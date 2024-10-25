@@ -3,8 +3,8 @@ import { GitHubStorage } from '@/lib/github';
 import type { Survey, SurveyResponse } from '@/types/survey';
 
 const storage = new GitHubStorage(
-  import.meta.env.VITE_GITHUB_OWNER,
-  import.meta.env.VITE_GITHUB_REPO
+  import.meta.env.VITE_GITHUB_OWNER || '',
+  import.meta.env.VITE_GITHUB_REPO || '',
 );
 
 export function useSurveys() {

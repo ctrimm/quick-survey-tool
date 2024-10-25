@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CONFIG } from '@/constants/config'
 
-export function AdminPage() {
+export const AdminPage = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -17,6 +17,12 @@ export function AdminPage() {
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleLogin()
+    }
+  }
+
   return (
     <div className="max-w-md mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Admin Login</h1>
@@ -25,6 +31,7 @@ export function AdminPage() {
         placeholder="Enter password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
       {error && <p className="text-red-500">{error}</p>}
       <Button onClick={handleLogin}>Login</Button>
